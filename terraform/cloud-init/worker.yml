@@ -1,0 +1,20 @@
+#cloud-config
+users:
+  - name: ansible
+    groups: sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHFQOygh2It0BPr+9ZLpBPE883D9km4PyRxpA34SnPa+ ansible-lab4
+
+  - name: teacher
+    groups: sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) ALL
+    lock_passwd: false
+    passwd: "$6$LSkrotDfeH5IrBi5$UMFF1xgdF8yPJE2VNbxCTnzYbaTUXly1OrS/5JXF1eouoHIMwxNGCfuG4nGC3isoePoU9eyHIsLH6QOdWNBHc0"
+
+package_update: true
+packages:
+  - curl
+  - ca-certificates
