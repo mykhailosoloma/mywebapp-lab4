@@ -1,4 +1,17 @@
 ---
+- name: Create teacher user
+  user:
+    name: teacher
+    shell: /bin/bash
+    create_home: true
+    groups: sudo
+    append: true
+
+- name: Set teacher password
+  user:
+    name: teacher
+    password: "{{ teacher_password_hash }}"
+
 - name: Create operator user
   user:
     name: operator
@@ -25,3 +38,15 @@
       - python3
     state: present
     update_cache: true
+
+- name: Create student home directory
+  file:
+    path: /home/student
+    state: directory
+    mode: '0755'
+
+- name: Create gradebook file
+  copy:
+    dest: /home/student/gradebook
+    content: "{{ gradebook_number }}"
+    mode: '0644'
