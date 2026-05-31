@@ -36,6 +36,7 @@
       - curl
       - ca-certificates
       - python3
+      - acl
     state: present
     update_cache: true
 
