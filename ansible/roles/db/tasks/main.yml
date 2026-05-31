@@ -15,31 +15,33 @@
     enabled: true
 
 - name: Create database user
-  shell: >
-    sudo -u postgres psql -tc
-    "SELECT 1 FROM pg_roles WHERE rolname='{{ db_user }}'"
-    | grep -q 1 ||
-    sudo -u postgres psql -c
-    "CREATE USER {{ db_user }} WITH PASSWORD '{{ db_password }}';"
-  changed_when: false
+  community.postgresql.postgresql_user:
+    name: "{{ db_user }}"
+    password: "{{ db_password }}"
+    state: present
+  become: true
+  become_user: postgres
 
 - name: Create database
-  shell: >
-    sudo -u postgres psql -lqt
-    | cut -d \| -f 1
-    | grep -qw {{ db_name }} ||
-    sudo -u postgres psql -c
-    "CREATE DATABASE {{ db_name }} OWNER {{ db_user }};"
-  changed_when: false
+  community.postgresql.postgresql_db:
+    name: "{{ db_name }}"
+    owner: "{{ db_user }}"
+    state: present
+  become: true
+  become_user: postgres
 
-- name: Grant privileges
-  shell: >
-    sudo -u postgres psql -c
-    "GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_user }};"
-  changed_when: false
+- name: Grant database privileges
+  community.postgresql.postgresql_privs:
+    db: "{{ db_name }}"
+    role: "{{ db_user }}"
+    type: database
+    privs: ALL
+    state: present
+  become: true
+  become_user: postgres
 
 - name: Get PostgreSQL version
-  shell: ls /etc/postgresql/
+  command: ls /etc/postgresql/
   register: pg_version
   changed_when: false
 
@@ -73,12 +75,36 @@
     state: enabled
     policy: allow
 
-- name: Run migration
-  shell: |
-    sudo -u postgres psql -d {{ db_name }} -c "CREATE TABLE IF NOT EXISTS tasks (id BIGSERIAL PRIMARY KEY, title VARCHAR(255) NOT NULL, status VARCHAR(50) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT NOW());"
-  changed_when: false
+- name: Create tasks table
+  community.postgresql.postgresql_table:
+    db: "{{ db_name }}"
+    name: tasks
+    state: present
+    columns:
+      - name: id
+        type: bigserial
+        primary_key: true
+      - name: title
+        type: varchar(255)
+        not_null: true
+      - name: status
+        type: varchar(50)
+        not_null: true
+        default: "'pending'"
+      - name: created_at
+        type: timestamp
+        not_null: true
+        default: now()
+  become: true
+  become_user: postgres
 
 - name: Grant table permissions
-  shell: |
-    sudo -u postgres psql -d {{ db_name }} -c "GRANT ALL PRIVILEGES ON TABLE tasks TO {{ db_user }}; GRANT USAGE, SELECT ON SEQUENCE tasks_id_seq TO {{ db_user }};"
-  changed_when: false
+  community.postgresql.postgresql_privs:
+    db: "{{ db_name }}"
+    role: "{{ db_user }}"
+    type: table
+    objs: tasks
+    privs: ALL
+    state: present
+  become: true
+  become_user: postgres
