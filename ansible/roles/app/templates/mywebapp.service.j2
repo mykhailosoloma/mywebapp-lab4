@@ -1,0 +1,16 @@
+[Unit]
+Description=mywebapp Task Tracker
+After=network.target
+
+[Service]
+Type=simple
+User=app
+WorkingDirectory=/opt/mywebapp
+ExecStart=/usr/bin/java -jar /opt/mywebapp/mywebapp.jar --spring.config.location=file:/opt/mywebapp/application.yml
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

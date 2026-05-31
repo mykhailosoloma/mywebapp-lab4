@@ -1,0 +1,84 @@
+---
+- name: Install PostgreSQL
+  apt:
+    name:
+      - postgresql
+      - postgresql-contrib
+      - python3-psycopg2
+    state: present
+    update_cache: true
+
+- name: Start and enable PostgreSQL
+  systemd:
+    name: postgresql
+    state: started
+    enabled: true
+
+- name: Create database user
+  shell: >
+    sudo -u postgres psql -tc
+    "SELECT 1 FROM pg_roles WHERE rolname='{{ db_user }}'"
+    | grep -q 1 ||
+    sudo -u postgres psql -c
+    "CREATE USER {{ db_user }} WITH PASSWORD '{{ db_password }}';"
+  changed_when: false
+
+- name: Create database
+  shell: >
+    sudo -u postgres psql -lqt
+    | cut -d \| -f 1
+    | grep -qw {{ db_name }} ||
+    sudo -u postgres psql -c
+    "CREATE DATABASE {{ db_name }} OWNER {{ db_user }};"
+  changed_when: false
+
+- name: Grant privileges
+  shell: >
+    sudo -u postgres psql -c
+    "GRANT ALL PRIVILEGES ON DATABASE {{ db_name }} TO {{ db_user }};"
+  changed_when: false
+
+- name: Get PostgreSQL version
+  shell: ls /etc/postgresql/
+  register: pg_version
+  changed_when: false
+
+- name: Configure PostgreSQL listen address
+  lineinfile:
+    path: "/etc/postgresql/{{ pg_version.stdout_lines[0] }}/main/postgresql.conf"
+    regexp: "^#?listen_addresses"
+    line: "listen_addresses = '{{ db_listen_ip }},127.0.0.1'"
+  notify: restart postgresql
+
+- name: Allow worker to connect
+  lineinfile:
+    path: "/etc/postgresql/{{ pg_version.stdout_lines[0] }}/main/pg_hba.conf"
+    line: "host {{ db_name }} {{ db_user }} {{ worker_ip }}/32 md5"
+    state: present
+  notify: restart postgresql
+
+- name: Install ufw
+  apt:
+    name: ufw
+    state: present
+
+- name: Allow PostgreSQL from worker only
+  ufw:
+    rule: allow
+    port: "5432"
+    src: "{{ worker_ip }}"
+
+- name: Enable UFW
+  ufw:
+    state: enabled
+    policy: allow
+
+- name: Run migration
+  shell: |
+    sudo -u postgres psql -d {{ db_name }} -c "CREATE TABLE IF NOT EXISTS tasks (id BIGSERIAL PRIMARY KEY, title VARCHAR(255) NOT NULL, status VARCHAR(50) NOT NULL DEFAULT 'pending', created_at TIMESTAMP NOT NULL DEFAULT NOW());"
+  changed_when: false
+
+- name: Grant table permissions
+  shell: |
+    sudo -u postgres psql -d {{ db_name }} -c "GRANT ALL PRIVILEGES ON TABLE tasks TO {{ db_user }}; GRANT USAGE, SELECT ON SEQUENCE tasks_id_seq TO {{ db_user }};"
+  changed_when: false

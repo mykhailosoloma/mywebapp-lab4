@@ -1,0 +1,27 @@
+---
+- name: Create operator user
+  user:
+    name: operator
+    shell: /bin/bash
+    create_home: true
+
+- name: Set operator password
+  user:
+    name: operator
+    password: "{{ operator_password_hash }}"
+
+- name: Create app user
+  user:
+    name: app
+    shell: /bin/false
+    create_home: false
+    system: true
+
+- name: Install common packages
+  apt:
+    name:
+      - curl
+      - ca-certificates
+      - python3
+    state: present
+    update_cache: true

@@ -1,0 +1,6 @@
+---
+db_name: mywebapp
+db_user: mywebapp
+db_password: mywebapp_secret
+worker_ip: 192.168.56.10
+db_listen_ip: 192.168.56.11

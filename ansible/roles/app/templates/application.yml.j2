@@ -1,0 +1,19 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://{{ db_host }}:{{ db_port }}/{{ db_name }}
+    username: {{ db_user }}
+    password: {{ db_password }}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    open-in-view: false
+
+server:
+  address: 127.0.0.1
+  port: {{ app_port }}
+
+logging:
+  level:
+    com.mywebapp: INFO

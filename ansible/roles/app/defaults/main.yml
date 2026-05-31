@@ -1,0 +1,8 @@
+---
+db_host: 192.168.56.11
+db_port: 5432
+db_name: mywebapp
+db_user: mywebapp
+db_password: mywebapp_secret
+app_port: 8080
+app_jar_url: "https://github.com/mykhailosoloma/mywebapp-lab1/releases/download/v1.0.0/mywebapp.jar"
